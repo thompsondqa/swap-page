@@ -3,15 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CryptoSwap - Trade with CR7</title>
+    <title>Flash Swap</title>
     <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
-
-
 </head>
+
 <body>
+
+    <div id="app">
+        <div id="auth-container">
+            <button id="logout-btn" style="display: none;">Logout</button>
+        </div>
+        <div id="user-info" style="display: none;">
+            <h2>Welcome!</h2>
+            <p id="user-details"></p>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/@privy-io/js-sdk@latest/dist/index.umd.js"></script>
+    <script src="script.js"></script>
+
+
 
     <div class="wallet-section">
         <button class="connect-wallet-btn" id="connectWallet">
@@ -20,13 +35,18 @@
     </div>
 
 
+
+    <div id="user-info" style="display: none;">
+        <h2>Welcome!</h2>
+        <p id="user-details"></p>
+    </div>
+    </div>
+
+
     <div class="container">
         <div class="header">
-            <h1>CryptoSwap</h1>
-            <p>Trade like a champion with CR7</p>
+            <h1>Flash Swap</h1>
         </div>
-
-        
 
         <div class="swap-container">
             <div class="token-input">
@@ -40,7 +60,7 @@
                         <span>ETH</span>
                         <span>▼</span>
                     </div>
-                    <input type="text" class="amount-input" id="fromAmount" placeholder="0.0">
+                    <input type="text" class="amount-input" id="fromAmount" placeholder="0">
                 </div>
             </div>
 
@@ -61,22 +81,7 @@
                         <span>USDC</span>
                         <span>▼</span>
                     </div>
-                    <input type="text" class="amount-input" id="toAmount" placeholder="0.0" readonly>
-                </div>
-            </div>
-
-            <div class="price-info">
-                <div class="price-row">
-                    <span>Exchange Rate</span>
-                    <span id="exchangeRate">1 ETH = 2,850 USDC</span>
-                </div>
-                <div class="price-row">
-                    <span>Network Fee</span>
-                    <span id="networkFee">~$12.50</span>
-                </div>
-                <div class="price-row">
-                    <span>Slippage Tolerance</span>
-                    <span>0.5%</span>
+                    <input type="text" class="amount-input" id="toAmount" placeholder="0" readonly>
                 </div>
             </div>
 
@@ -88,166 +93,6 @@
         </div>
     </div>
 
-    <script>
-        let isWalletConnected = false;
-        let walletAddress = '';
-        let fromTokenSymbol = 'ETH';
-        let toTokenSymbol = 'USDC';
 
-        // Mock exchange rates
-        const exchangeRates = {
-            'ETH-USDC': 2850,
-            'USDC-ETH': 0.000351,
-            'BTC-USDC': 65000,
-            'USDC-BTC': 0.0000154
-        };
-
-        // Mock balances
-        const mockBalances = {
-            'ETH': 1.2345,
-            'USDC': 5420.50,
-            'BTC': 0.0876
-        };
-
-        // DOM elements
-        const connectWalletBtn = document.getElementById('connectWallet');
-        const walletText = document.getElementById('walletText');
-        const swapBtn = document.getElementById('swapBtn');
-        const fromAmount = document.getElementById('fromAmount');
-        const toAmount = document.getElementById('toAmount');
-        const swapDirection = document.getElementById('swapDirection');
-        const fromBalance = document.getElementById('fromBalance');
-        const toBalance = document.getElementById('toBalance');
-        const exchangeRateElement = document.getElementById('exchangeRate');
-        const statusMessage = document.getElementById('statusMessage');
-
-        // Connect wallet functionality
-        connectWalletBtn.addEventListener('click', async () => {
-            if (!isWalletConnected) {
-                // Simulate wallet connection
-                connectWalletBtn.style.opacity = '0.7';
-                walletText.textContent = 'Connecting...';
-                
-                setTimeout(() => {
-                    isWalletConnected = true;
-                    walletAddress = '0x742d35Cc6aB4502532d4aa2e84E0c3A3a1640f29';
-                    connectWalletBtn.classList.add('connected');
-                    walletText.textContent = `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
-                    connectWalletBtn.style.opacity = '1';
-                    swapBtn.disabled = false;
-                    swapBtn.textContent = 'Swap Tokens';
-                    updateBalances();
-                    showStatus('Wallet connected successfully!', 'success');
-                }, 1500);
-            } else {
-                // Disconnect wallet
-                isWalletConnected = false;
-                walletAddress = '';
-                connectWalletBtn.classList.remove('connected');
-                walletText.textContent = 'Connect Wallet';
-                swapBtn.disabled = true;
-                swapBtn.textContent = 'Connect Wallet to Swap';
-                updateBalances();
-                showStatus('Wallet disconnected', 'error');
-            }
-        });
-
-        // Swap direction
-        swapDirection.addEventListener('click', () => {
-            const temp = fromTokenSymbol;
-            fromTokenSymbol = toTokenSymbol;
-            toTokenSymbol = temp;
-            
-            document.querySelector('#fromToken span').textContent = fromTokenSymbol;
-            document.querySelector('#toToken span').textContent = toTokenSymbol;
-            
-            updateExchangeRate();
-            updateBalances();
-            calculateSwapAmount();
-        });
-
-        // Amount input
-        fromAmount.addEventListener('input', calculateSwapAmount);
-
-        // Swap button
-        swapBtn.addEventListener('click', () => {
-            if (!isWalletConnected) return;
-            
-            const fromValue = parseFloat(fromAmount.value);
-            if (!fromValue || fromValue <= 0) {
-                showStatus('Please enter a valid amount', 'error');
-                return;
-            }
-            
-            if (fromValue > mockBalances[fromTokenSymbol]) {
-                showStatus('Insufficient balance', 'error');
-                return;
-            }
-            
-            // Simulate swap transaction
-            swapBtn.textContent = 'Swapping...';
-            swapBtn.style.opacity = '0.7';
-            
-            setTimeout(() => {
-                // Update balances
-                mockBalances[fromTokenSymbol] -= fromValue;
-                const toValue = parseFloat(toAmount.value);
-                mockBalances[toTokenSymbol] += toValue;
-                
-                updateBalances();
-                fromAmount.value = '';
-                toAmount.value = '';
-                
-                swapBtn.textContent = 'Swap Tokens';
-                swapBtn.style.opacity = '1';
-                
-                showStatus(`Successfully swapped ${fromValue} ${fromTokenSymbol} for ${toValue.toFixed(4)} ${toTokenSymbol}!`, 'success');
-            }, 2000);
-        });
-
-        function calculateSwapAmount() {
-            const fromValue = parseFloat(fromAmount.value);
-            if (!fromValue || fromValue <= 0) {
-                toAmount.value = '';
-                return;
-            }
-            
-            const rateKey = `${fromTokenSymbol}-${toTokenSymbol}`;
-            const rate = exchangeRates[rateKey] || 1;
-            const toValue = fromValue * rate;
-            
-            toAmount.value = toValue.toFixed(6);
-        }
-
-        function updateExchangeRate() {
-            const rateKey = `${fromTokenSymbol}-${toTokenSymbol}`;
-            const rate = exchangeRates[rateKey] || 1;
-            exchangeRateElement.textContent = `1 ${fromTokenSymbol} = ${rate.toLocaleString()} ${toTokenSymbol}`;
-        }
-
-        function updateBalances() {
-            if (isWalletConnected) {
-                fromBalance.textContent = `Balance: ${mockBalances[fromTokenSymbol].toFixed(4)}`;
-                toBalance.textContent = `Balance: ${mockBalances[toTokenSymbol].toFixed(4)}`;
-            } else {
-                fromBalance.textContent = 'Balance: 0.00';
-                toBalance.textContent = 'Balance: 0.00';
-            }
-        }
-
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message ${type}`;
-            statusMessage.style.display = 'block';
-            
-            setTimeout(() => {
-                statusMessage.style.display = 'none';
-            }, 4000);
-        }
-
-        // Initialize
-        updateExchangeRate();
-        updateBalances();
-    </script>
 </body>
 </html>
